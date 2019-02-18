@@ -8,4 +8,4 @@ To understand Buffer Overflow we need to uderstand the memory layout of the prog
 - **Heap**: This is for dynamic memory allocation, it can be managed using functions like malloc, calloc, realloc, free, etc.
 - **Stack**: It is used for storing local variables defined inside functions, along with data related to function calls.
 
-![Memory Layout](Buffer-Overflow/Memory layout.png)
+![Memory Layout](https://github.com/azizahsan/Buffer-Overflow/blob/master/Memory%20layout.png?raw=true)
