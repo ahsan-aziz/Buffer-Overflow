@@ -63,4 +63,10 @@ int y = a*b;
 ```
 
 The above function will look like this in stack:
-![function]()
+![function](https://github.com/azizahsan/Buffer-Overflow/blob/master/function.png?raw=true)
+ 
+ Before we proceed we need to understand EBP. 
+- Parameters: the arguments passed to the function will pushed first in the stack
+- Return Address: when a funcion finishes it returns back to the callee function e.g. main function 
+- Previous Frame pointer:  it is discussed below. 
+- Local Variables: 
