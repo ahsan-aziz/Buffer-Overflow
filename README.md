@@ -18,19 +18,14 @@ Let's take an example. Following is a small C-program:
 int x = 1000;
 int main()
 {
-
-//initializing variables
 int var1=2;
 static int var2;
 
-//allocating dynamic memory
 int *ptr = (int*) malloc(2 * sizeof(int));
 
-//saving data on heap
 ptr[0]=5;
 ptr[1]=6;
 
-//deallocate memory
 free(ptr);
 
 return 1;
@@ -38,11 +33,34 @@ return 1;
 ```
 
 The above program will be loaded in memory as follows:
-Variable x (initialized global variable) -> Initialized Data Segment
+
+Variable x (global variable) -> Initialized Data Segment (BSS)
+
 Local variables var1 and ptr  -> Stack
-Variable y (not initialized) -> Uninialized Data Segment
-Values ptr[1] and ptr[2] -> Heap
+
+Variable y -> Uninialized Data Segment
+
+Values of ptr[1] and ptr[2] -> Heap
+
 Machine code of the compiled program -> Text Segment
 
 
-When we used the function malloc, it allocated memory (size of two integer) on Heap, and variable ptr is a pointer which is pointing to that block of memory. The ptr will be stored on Stack and values 5 and 6 will go to Heap.
+When we used the function malloc, it allocated memory (size of two integers) on Heap, and variable ptr is a pointer which is pointing to that block of memory. The ptr will be stored on Stack and values 5 and 6 will go to Heap.
+
+Buffer overflow can happen on both Heap and Stack, and the exploitation is differen for both. In this post, our focus is on stack overflow. 
+
+When a function is called inside a program, some space is allocated on top of the stack. Here is a simple function:
+
+
+```
+void aFunc(int a, int b)
+{
+
+int x = a+b;
+int y = a*b;
+
+}
+```
+
+The above function will look like this in stack:
+![function]()
