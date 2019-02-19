@@ -32,24 +32,24 @@ return 1;
 }
 ```
 
-The above program will be loaded in memory as follows:
+- The above program will be loaded in memory as follows:
 
-Variable x (global variable) -> Initialized Data Segment (BSS)
+- Variable x (global variable) -> Initialized Data Segment (BSS)
 
-Local variables var1 and ptr  -> Stack
+- Local variables var1 and ptr  -> Stack
 
-Variable y -> Uninialized Data Segment
+- Variable y -> Uninialized Data Segment
 
-Values of ptr[1] and ptr[2] -> Heap
+- Values of ptr[1] and ptr[2] -> Heap
 
-Machine code of the compiled program -> Text Segment
+- Machine code of the compiled program -> Text Segment
 
 
-When we used the function malloc, it allocated memory (size of two integers) on Heap, and variable ptr is a pointer which is pointing to that block of memory. The ptr will be stored on Stack and values 5 and 6 will go to Heap.
+The function "malloc(2 * sizeof(int))" allocates memory (size of two integers) on Heap, and variable ptr is a pointer which is pointing to that block of memory. The ptr will be stored on Stack and values 5 and 6 will go to Heap.
 
 Buffer overflow can happen on both Heap and Stack, and the exploitation is differen for both. In this post, our focus is on stack overflow. 
 
-When a function is called inside a program, some space is allocated on top of the stack. Here is a simple function:
+When a function is called inside a program, some space is allocated for it on top of the stack. Here is a simple function:
 
 
 ```
@@ -63,10 +63,14 @@ int y = a*b;
 ```
 
 The above function will look like this in stack:
+
 ![function](https://github.com/azizahsan/Buffer-Overflow/blob/master/function.png?raw=true)
  
- Before we proceed we need to understand EBP. 
-- Parameters: the arguments passed to the function will pushed first in the stack
+- Parameters: the arguments passed to the function will be pushed first in the stack
 - Return Address: when a funcion finishes it returns back to the callee function e.g. main function 
-- Previous Frame pointer:  it is discussed below. 
-- Local Variables: 
+- Previous Frame pointer: it is discussed below. 
+- Local Variables: next local variables are pushed to stack, the order of the variable is up to the compiler
+
+**ESP and EBP Registers**:
+
+When a program is loaded to the stack, ESP (Extended Stack Pointer) points to the top of the stack, remember stack grows from higher to lower address so ESP would be pointing to the lowest address in stack. We can access other parts of stack with the offset of ESP, e.g. in above example, the ESP would be pointing to the value of y and if value of x needed to be accessed we can add 4-bytes (in 32-bit architecture) in ESP and it would be moved to value of x. Now what if we call a function inside another function/porgram? the stack would grow to accomodate new function and ESP would also move to the top of the stack, and when we return from the function we would no longer able to access the stack segments as we don't remember where ESP was pointing to. To solve this problem, we have another register EBP (Extended Base Pointer), this register keeps the copy of ESP or just point to a fixed location in stack. So, we have two registers now, ESP pointing to the top of the stack and it can move freely as needed, and EBP which is pointing to a fixed location and other segments are accessed with the offset of EBP. In this case, when we call another function, we can push the value of EBP into the stack of new function, so that when the function finishes we know our base pointer. The Previous Frame Pointer in above example is basically value of EBP from previous function.  
