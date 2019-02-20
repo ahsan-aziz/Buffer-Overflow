@@ -1,6 +1,6 @@
 # Buffer Overflow With an Example
 
-To understand Buffer Overflow we need to uderstand the memory layout of the program. When we run a typical C program, it gets loaded into the memory (RAM) and gets divided into following five segments ([more here](http://www.cis.syr.edu/~wedu/seed/Book/book_sample_buffer.pdf)):
+To understand Buffer Overflow we need to uderstand the memory layout of the program. When we run a typical C program, it gets loaded into the memory (RAM) and gets divided into following five segments:
 
 - **Text**: stores the executable code of the program.
 - **Initialized data**: stores static/global variables. 
@@ -84,23 +84,24 @@ The function "foo()" would look like this in stack:
 **A Vulnerable Program**
 Now let's see how a vulnerable program looks like and what happens when buffer overflows. 
 
-Following is a vulnerable program:
+Following is a vulnerable program (taken from ([this book](http://www.cis.syr.edu/~wedu/seed/Book/book_sample_buffer.pdf))):
 
 ```
 #include <string.h>
-
 void foo(char *str)
 {
-  char buffer[12];
-  strcpy(buffer, str);
+char buffer[12];
+/* The following statement will result in buffer overflow */
+strcpy(buffer, str);
 }
 int main()
 {
-  char *str = "Hello";
-  foo(str);
-  return 1;
+char *str = "This is definitely longer than 12";
+foo(str);
+return 1;
 }
 ```
 
-In above program, the function foo takes an arguments and directly copy that to buffer, which is of size 12 bytes. The main function is passing the argument ("Hello") to foo, which is of 5-bytes size.
+In above program, the function foo takes an arguments and directly copies that to buffer. The stack arrangement would be:
+![stack]()
 
