@@ -199,7 +199,7 @@ Nmap done: 1 IP address (1 host up) scanned in 73.92 seconds
 ```
 
 Let's see what's at port 10000:
-![website]()
+![website](https://github.com/azizahsan/Buffer-Overflow/blob/master/website.png?raw=true)
 
 Dirb on port 10000:
 
@@ -229,10 +229,10 @@ DOWNLOADED: 4612 - FOUND: 2
 ```
 
 Let's see what's in the bin folder:
-![bin]()
+![bin](https://github.com/azizahsan/Buffer-Overflow/blob/master/bin.png?raw=true)
 
 Port 9999 doesn't give anyting with browser, let's connect it with netcat:
-![port]()
+![port](https://github.com/azizahsan/Buffer-Overflow/blob/master/port.png?raw=true)
 
 It asks for password which we don't have at this stage. 
 
@@ -332,7 +332,7 @@ When I run brainpan.exe it opens port 9999 on my windows, and we can connect to 
 
 Let's run brainpan.exe and attack debugger to it (start immunity debugger and file->attach->brainpan.exe) and press start program button. We can see the state of registers and memory dump, we can right-click on any register and "follow-dump" to see where is it pointing to in the memory. 
 
-![immunity]()
+![immunity](https://github.com/azizahsan/Buffer-Overflow/blob/master/immunity.png?raw=true)
 
 My windows machine got IP:192.168.56.103. We can use following python code to fuzz the application. This code will send input string (payload) to the application on port 9999. We can send some random pyaloads and see when the application crashes. A payload of size 1000 will crash it, the following code can be used to fuzz it, it is sending 1000 A's:
 
@@ -350,7 +350,7 @@ s.close()
 ```
 So it sent 1000 bytes of data and our application crashed, we can see the error on our debugger. Let's have a look at the registers:
 
-![registers]()
+![registers](https://github.com/azizahsan/Buffer-Overflow/blob/master/registers.png?raw=true)
 
 EIP (Extended Instruction Pointer) holds the address of the next instruction, it tells the computer where to go next to execute the next command and controls the flow of a program. In our case, when EIP got the return address our application crashed as that address might be out of the program stack. For ASCII character "A" the hex value is 41 that's why our all memory is filled in with 41s. So we've modified the return address with our payload. Now we need to find out which part of our paylaod actually modified the return address, to do that we can generate a unique string and send it to the application and see the value of EIP. A module from metasploit can be used to generate a unique string:
 
@@ -375,7 +375,7 @@ s.close()
 ```
 
 After the above payload the registers look like this:
-![eip]()
+![eip](https://github.com/azizahsan/Buffer-Overflow/blob/master/eip.png?raw=true)
 
 EIP is 35724134. Let's see where exactly is this in our payload, we can use following command to do that:
 
@@ -401,11 +401,11 @@ s.close()
 
 The first 524 bytes are "A", then 4 "B" and remaining part of the payload is "C", we are keeping the paylaod size same (1000). Let's see the registers after above paylaod:
 
-![b]()
+![b](https://github.com/azizahsan/Buffer-Overflow/blob/master/b.png?raw=true)
 
 Great, our EIP is filled with B's(42), we can control the EIP or return address. Now let's find out where we can put our malicious code on the stack. 
 
-![current]()
+![current](https://github.com/azizahsan/Buffer-Overflow/blob/master/current.png?raw=true)
 
 We can follow ESP in memory dump (right click on ESP address and click follow dump), and can see that ESP is actually pointing right next to the return address, which seems like a good location for our maclious code. 
 
@@ -443,5 +443,7 @@ s.close()
 
 I am using the character list four times so that it crashes the application and it's easy for us to find these characters in stack. Now if we match the payload characters with the stack ones, nothing is escaped actually. So we don't have to worry about any bad characters. 
 
-![bad]()
+![bad](https://github.com/azizahsan/Buffer-Overflow/blob/master/bad.png?raw=true)
+
+
 
