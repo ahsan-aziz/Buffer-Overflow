@@ -84,7 +84,7 @@ The function "foo()" would look like this in stack:
 **A Vulnerable Program**
 Now let's see how a vulnerable program looks like and what happens when buffer overflows. 
 
-Following is a vulnerable program (taken from ([this book](http://www.cis.syr.edu/~wedu/seed/Book/book_sample_buffer.pdf))):
+Following is a vulnerable program (taken from [this book](http://www.cis.syr.edu/~wedu/seed/Book/book_sample_buffer.pdf)):
 
 ```
 #include <string.h>
@@ -199,6 +199,7 @@ Nmap done: 1 IP address (1 host up) scanned in 73.92 seconds
 ```
 
 Let's see what's at port 10000:
+
 ![website](https://github.com/azizahsan/Buffer-Overflow/blob/master/website.png?raw=true)
 
 Dirb on port 10000:
@@ -229,9 +230,11 @@ DOWNLOADED: 4612 - FOUND: 2
 ```
 
 Let's see what's in the bin folder:
+
 ![bin](https://github.com/azizahsan/Buffer-Overflow/blob/master/bin.png?raw=true)
 
 Port 9999 doesn't give anyting with browser, let's connect it with netcat:
+
 ![port](https://github.com/azizahsan/Buffer-Overflow/blob/master/port.png?raw=true)
 
 It asks for password which we don't have at this stage. 
@@ -375,6 +378,7 @@ s.close()
 ```
 
 After the above payload the registers look like this:
+
 ![eip](https://github.com/azizahsan/Buffer-Overflow/blob/master/eip.png?raw=true)
 
 EIP is 35724134. Let's see where exactly is this in our payload, we can use following command to do that:
