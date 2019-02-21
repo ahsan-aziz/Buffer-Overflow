@@ -105,6 +105,7 @@ return 1;
 ```
 
 The stack arrangement would be:
+
 ![stack](https://github.com/azizahsan/Buffer-Overflow/blob/master/stack.png?raw=true)
 
 The stack grows from higher to lower address but the buffer grows normally i.e. lower to higher. The function *foo()* takes an argumnets and directly copies it to the buffer using function *strcpy()*, the buffer is declared as 12-bytes long, but in above program the string is longer than the buffer, so this string will overflow the buffer and overwrites other parts of stack, i.e. "Previous Frame Pointer", "Return Address" etc. As the return address is modified, the function would try to return to the new address and execute whatever is there, however if the new return address is out of the program allocated memory, the jump will fail and program will crash with a "segmentation fault" error. 
@@ -331,11 +332,11 @@ send
 socket
 ```
 
-So this is 32-bit windows binary and have functions like strcpy/strcmp, so its possiblly vulnerable to buffer overflow. I will run this binary on Windows 7 virtual machine (you can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/)), I also have installed [immunity debugger](https://www.immunityinc.com/products/debugger/) with [mona scripts](https://github.com/corelan/mona). 
+So this is 32-bit windows binary and have functions like strcpy/strcmp, so its possibally vulnerable to buffer overflow. I will be running this binary on Windows 7 virtual machine (you can download it from [here](https://developer.microsoft.com/en-us/microsoft-edge/tools/vms/)), I also have installed [immunity debugger](https://www.immunityinc.com/products/debugger/) with [mona scripts](https://github.com/corelan/mona). 
 
-When I run brainpan.exe it opens port 9999 on my windows, and we can connect to it from our Kali. 
+When we run brainpan.exe it opens port 9999 on windows, and we can connect to it from our Kali. 
 
-Let's run brainpan.exe and attack debugger to it (start immunity debugger and file->attach->brainpan.exe) and press start button. We can see the state of the registers and memory dump, we can right-click on any register and *follow-dump* to see where is it pointing to in the memory. 
+Let's run brainpan.exe and attach debugger to it (start immunity debugger and file->attach->brainpan.exe) and press start button. We can see the state of the registers and memory dump, we can right-click on any register and *follow-dump* to see where is it pointing to in the memory. 
 
 ![immunity](https://github.com/azizahsan/Buffer-Overflow/blob/master/immunity.png?raw=true)
 
@@ -358,7 +359,7 @@ We can see the error on our debugger. Let's have a look at the registers:
 
 ![registers](https://github.com/azizahsan/Buffer-Overflow/blob/master/registers.png?raw=true)
 
-EIP (Extended Instruction Pointer) holds the address of the next instruction, it tells the computer where to go next to execute the next command and controls the flow of a program. In our case, when EIP reached to the return address in our application, the application crashed as that address might be out of the program stack. So, For ASCII character "A" the hex value is 41 that's why our all memory is filled with 41s. So we've modified the return address with our payload. Now we need to find out which part of our paylaod actually modified the return address, to do that we can generate a unique string and send it to the application and see the value of EIP. A module from metasploit can be used to generate a unique string:
+EIP (Extended Instruction Pointer) holds the address of the next instruction, it tells the computer where to go next to execute the next command and controls the flow of a program. In our case, when EIP reached to the return address, the application crashed as that address might be out of the program stack. For ASCII character "A" the hex value is 41 that's why our all memory is filled with 41s. So, we've modified the return address with our payload. Now we need to find out which part of our paylaod actually modified the return address, to do that we can generate a unique string and send it to the application and check the value of EIP. A module from metasploit can be used to generate a unique string:
 
 ```
 root@kali:~/Downloads# /usr/share/metasploit-framework/tools/exploit/pattern_create.rb -l 1000
@@ -391,7 +392,7 @@ root@kali:~/Downloads# /usr/share/metasploit-framework/tools/exploit/pattern_off
 [*] Exact match at offset 524
 
 ```
-Nice. So our return address is at offset of 524 from the start of buffer. Let's confirm this using below code:
+Nice. Our return address is at offset of 524 from the start of buffer. Let's confirm this using below code:
 
 ```
 #!/usr/bin/python
@@ -450,7 +451,7 @@ s.close()
 
 I am using the character list four times so that it crashes the application and it's easy for us to find these characters in stack. Now if we match the payload characters with the stack ones, nothing is escaped actually. So we don't have to worry about any bad characters, we can only remove the null bytes (x00) from the payload. 
 
-When an application rejects any character, the payload needs to be encoded, and the decoding would take place on the stack which needs some extra bytes, so having some no operations (typically 16-bytes) is a good practice, it will also give some room for malicious code to get decoded, otherwise it may overflow to our return address.  
+When an application rejects any character, the payload needs to be encoded, and the decoding would take place on the stack,  which needs some extra bytes, so having some no operations (typically 16-bytes) is a good practice, it will give some room for malicious code to get decoded, otherwise it may overflow to our return address.  
 
 ![bad](https://github.com/azizahsan/Buffer-Overflow/blob/master/bad.png?raw=true)
 
@@ -462,7 +463,7 @@ So our payload can look like follows:
 
 ```
 
-As we can see in the memory dump that the address where ESP is pointing to is a good place to put our malicious code. We just need to jump to the address where ESP is pointing, we cannot hardcode value of ESP address as return address in our code as it gets changed, we need to find a statement where we can jump to ESP. 
+As we can see in the memory dump that the address where ESP is pointing to is a good place to put our malicious code. We just need to jump to ESP to run our code, we cannot hardcode value of ESP as return address in our code as it gets changed after every execution, we need to find a statement which help us jump to ESP. 
 
 It can be done by using mona modules in immunity debugger, first step is to see which process has [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization) turned off, to do that we type "!mona modules" in debugger:
 
@@ -559,7 +560,7 @@ As brainpan is linux, we need to generate shellcode for linux:
 msfvenom -p linux/x86/shell_bind_tcp LPORT=4444 -f c -b "\x00" –e x86/shikata_ga_nai
 ```
 
-We just replace the shell code and run against the brainpan vm, and we'll be able to get shell. This code file is uploaded (linux-poc.py). 
+We just replace the shell code and run against the brainpan vm, and we'll be able to get shell. The poc for linux is also uploaded (linux-poc.py). 
 
 
 
