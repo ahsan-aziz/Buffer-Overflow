@@ -488,7 +488,7 @@ nasm >
 
 Let's search this using mona (note I am running mona commands after crashing the app):
 
-![find](https://github.com/azizahsan/Buffer-Overflow/blob/master/find.png?raw=true)
+![find](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/find.png?raw=true)
 
 We've got one "JMP ESP" address: 0x311712F3.
 
