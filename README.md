@@ -11,7 +11,7 @@ To understand Buffer Overflow we need to uderstand the memory layout of a progra
 - **Heap**: It is for dynamic memory allocation and can be managed using functions like malloc, calloc, realloc, free, etc.
 - **Stack**: It is used for storing local variables defined inside functions, along with data related to function calls.
 
-![Memory Layout](https://github.com/azizahsan/Buffer-Overflow/blob/master/layout.png?raw=true)
+![Memory Layout](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/layout.png?raw=true)
 
 Note that Stack grows higher to lower address and heap grows opposite. 
 
@@ -76,7 +76,7 @@ int main()
 
 The function *foo()* would be arranged in stack as:
 
-![function](https://github.com/azizahsan/Buffer-Overflow/blob/master/function.png?raw=true)
+![function](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/function.png?raw=true)
  
 - **Parameters**: the arguments passed to the function will be pushed first in the stack.
 - **Return Address**: when a funcion finishes, it returns back to the callee function and the address of next statement is called return address; in above example when *foo()* finishes it needs to return back to *main()* function, and run the statement right next to it, so the address of *printf* statement would be the return address. Please make sure you understand this as this is very important buffer overflow exploitation.
@@ -106,7 +106,7 @@ return 1;
 
 The stack arrangement would be:
 
-![stack](https://github.com/azizahsan/Buffer-Overflow/blob/master/stack.png?raw=true)
+![stack](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/stack.png?raw=true)
 
 The stack grows from higher to lower address but the buffer grows normally i.e. lower to higher. The function *foo()* takes an argumnets and directly copies it to the buffer using function *strcpy()*, the buffer is declared as 12-bytes long, but in above program the string is longer than the buffer, so this string will overflow the buffer and overwrites other parts of stack, i.e. "Previous Frame Pointer", "Return Address" etc. As the return address is modified, the function would try to return to the new address and execute whatever is there, however if the new return address is out of the program allocated memory, the jump will fail and program will crash with a "segmentation fault" error. 
 
@@ -211,7 +211,7 @@ Nmap done: 1 IP address (1 host up) scanned in 73.92 seconds
 
 Let's see what's at port 10000:
 
-![website](https://github.com/azizahsan/Buffer-Overflow/blob/master/website.png?raw=true)
+![website](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/website.png?raw=true)
 
 Dirb on port 10000:
 
@@ -242,11 +242,11 @@ DOWNLOADED: 4612 - FOUND: 2
 
 In the bin folder:
 
-![bin](https://github.com/azizahsan/Buffer-Overflow/blob/master/bin.png?raw=true)
+![bin](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/bin.png?raw=true)
 
 Port 9999 doesn't give anyting with browser, let's connect it with netcat:
 
-![port](https://github.com/azizahsan/Buffer-Overflow/blob/master/port.png?raw=true)
+![port](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/port.png?raw=true)
 
 It asks for password which we don't have at this stage. 
 
@@ -346,7 +346,7 @@ When we run brainpan.exe it opens port 9999 on windows, and we can connect to it
 
 Let's run brainpan.exe and attach debugger to it (start immunity debugger and file->attach->brainpan.exe) and press start button. We can see the state of the registers and memory dump, we can right-click on any register and *follow-dump* to see where is it pointing to in the memory. 
 
-![immunity](https://github.com/azizahsan/Buffer-Overflow/blob/master/immunity.png?raw=true)
+![immunity](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/immunity.png?raw=true)
 
 My windows machine got IP:192.168.56.103. We can use following python code to fuzz the application. This code will send an input string (payload) to the application on port 9999. We can send some random pyaloads and see when the application crashes. A payload of size 1000 will crash it, the code is sending 1000 A's:
 
@@ -365,7 +365,7 @@ s.close()
 
 We can see the error on our debugger. Let's have a look at the registers:
 
-![registers](https://github.com/azizahsan/Buffer-Overflow/blob/master/registers.png?raw=true)
+![registers](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/registers.png?raw=true)
 
 EIP (Extended Instruction Pointer) holds the address of the next instruction, it tells the computer where to go next to execute the next command and controls the flow of a program. In our case, when EIP reached to the return address, the application crashed as that address might be out of the program stack. For ASCII character *A* the hex value is 41 that's why our all memory is filled with 41s. So, we've modified the return address with our payload. Now we need to find out which part of our paylaod actually modified the return address, to do that we can generate a unique string and send it to the application and check the value of EIP. A module from metasploit can be used to generate a string:
 
@@ -391,7 +391,7 @@ s.close()
 
 After the above payload the registers look like this:
 
-![eip](https://github.com/azizahsan/Buffer-Overflow/blob/master/eip.png?raw=true)
+![eip](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/eip.png?raw=true)
 
 EIP is 35724134, or in other words, the program tried to jump on it and failed. Let's see where exactly is this in our payload, we can use following command to do that:
 
@@ -417,11 +417,11 @@ s.close()
 
 The first 524 bytes are *A's*, then 4 *B's* and remaining part of the payload is *C*, we are keeping the paylaod size same (1000). Let's see the registers after above paylaod:
 
-![b](https://github.com/azizahsan/Buffer-Overflow/blob/master/b.png?raw=true)
+![b](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/b.png?raw=true)
 
 Great, our EIP is filled with *B's*(42), we can control the EIP or return address. Now let's find out where we can put our malicious code on the stack. 
 
-![current](https://github.com/azizahsan/Buffer-Overflow/blob/master/current.png?raw=true)
+![current](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/current.png?raw=true)
 
 We can follow ESP in memory dump (right click on ESP address and click follow dump), and can see that ESP is actually pointing right next to the return address, which seems like a good location for our maclious code. You can also inject your shellcode before the return address, or anywhere else, where you can easily jump. 
 
@@ -461,7 +461,7 @@ I am using the character list four times so that it crashes the application and 
 
 When an application rejects any character, the payload needs to be encoded, and the decoding would take place on the stack,  which needs some extra bytes, so having some no operations (typically 16-bytes) is a good practice, it will give some room for malicious code to get decoded, otherwise it may overflow to our return address.  
 
-![bad](https://github.com/azizahsan/Buffer-Overflow/blob/master/bad.png?raw=true)
+![bad](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/bad.png?raw=true)
 
 
 So our payload can look like follows:
@@ -475,7 +475,7 @@ As we can see in the memory dump that the address where ESP is pointing to is a 
 
 It can be done by using mona modules in immunity debugger, first step is to see which process has [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization) turned off, to do that we type "!mona modules" in debugger:
 
-![aslr](https://github.com/azizahsan/Buffer-Overflow/blob/master/aslr.png?raw=true)
+![aslr](https://github.com/azizahsan/Buffer-Overflow/blob/master/images/aslr.png?raw=true)
 
 ASLR is false for brainpan.exe, we can find "JMP ESP" in brainpan.exe and use the address of that statement as our return address. The code for "JMP ESP" is (FFE4):
 
