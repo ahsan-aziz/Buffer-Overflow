@@ -570,5 +570,5 @@ msfvenom -p linux/x86/shell_bind_tcp LPORT=4444 -f c -b "\x00" –e x86/shikata_
 
 We just replace the shell code and update the IP, and run against the brainpan vm. We should be able to get shell. The poc for linux is also uploaded (linux-poc.py). 
 
-Hope you liked the explanation, if you think it can be improved or it has any ambiguity or anything is incorrect, please let me now. Thank you.
+Hope you liked the explanation, if you think it can be improved or it has any ambiguity or anything is incorrect, please let me know. Thank you.
 
