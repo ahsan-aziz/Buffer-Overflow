@@ -41,7 +41,7 @@ The above program will be arranged in memory as follows:
 
 - Local variables *var1* and *ptr*  -> Stack
 
-- Variable *y* -> Uninialized Data Segment
+- Variable *var2* -> Uninialized Data Segment
 
 - Values of *ptr[0]* and *ptr[1]* -> Heap
 
