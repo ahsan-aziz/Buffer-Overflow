@@ -37,7 +37,7 @@ return 1;
 
 The above program will be arranged in memory as follows:
 
-- Variable *x* (global variable) -> Initialized Data Segment (BSS)
+- Variable *x* (global variable) -> Initialized Data Segment
 
 - Local variables *var1* and *ptr*  -> Stack
 
